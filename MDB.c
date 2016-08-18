@@ -6,15 +6,18 @@
 #pragma comment(linker, "/NODEFAULTLIB")
 #pragma comment(linker, "/INCREMENTAL:NO")
 
+#define ClassName TEXT("My Default Browser")
+#define WindowTitle TEXT("Browser Launcher")
+
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
 int argc;
 LPTSTR* argv;
-HWND hedit;
+HWND hlist;
+
 
 void WinMainCRTStartup()
 {
-	LPCTSTR pClassName = TEXT("My Default Browser");
 	HINSTANCE hinst;
 	MSG msg;
 	HWND hwnd;
@@ -23,6 +26,15 @@ void WinMainCRTStartup()
 
 	hinst = GetModuleHandle(NULL);
 
+	CreateMutex(NULL, FALSE, TEXT("MDB_MUTEX_ANTI-MULEXE"));
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		hlist = FindWindowEx(FindWindow(ClassName, WindowTitle), NULL, TEXT("LISTBOX"), NULL);
+		argv = CommandLineToArgvW(GetCommandLine(), &argc);
+		SendMessage(hlist, LB_ADDSTRING, 0, (LPARAM)argv[argc-1]);
+		GlobalFree(argv);
+		return;
+	}
+	
 	wc.cbSize        = sizeof(WNDCLASSEX);
 	wc.style         = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc   = WindowProc;
@@ -34,13 +46,13 @@ void WinMainCRTStartup()
 	wc.hCursor       = LoadCursor(NULL,IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 	wc.lpszMenuName  = NULL;
-	wc.lpszClassName = pClassName;
+	wc.lpszClassName = ClassName;
 
 	if (!RegisterClassEx(&wc)) return;
 
-	hwnd = CreateWindow(pClassName, TEXT("Browser Launcher"),
+	hwnd = CreateWindow(ClassName, WindowTitle,
 		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, 400, 50
+		CW_USEDEFAULT, CW_USEDEFAULT, 400, 130
 		+ GetSystemMetrics(SM_CYMIN),
 		NULL, NULL, hinst, NULL);
 
@@ -63,37 +75,39 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	
 	switch (msg) {
 	case WM_DESTROY:
-		GlobalFree(argv);
 		//PostQuitMessage(0);
 		ExitProcess(0);
 		break;
 	case WM_CREATE:
 		argv = CommandLineToArgvW(GetCommandLine(), &argc);
-		hedit = CreateWindow(
-			TEXT("EDIT"), argv[argc-1],
-			WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_READONLY,
-			2, 2, 375, 22,
+		hlist = CreateWindow(
+			TEXT("LISTBOX"), argv[argc-1],
+			WS_CHILD | WS_VISIBLE | WS_BORDER,
+			2, 2, 375, 100,
 			hwnd, (HMENU)1,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
+		SendMessage(hlist, LB_ADDSTRING, 0, (LPARAM)argv[argc-1]);
+		GlobalFree(argv);
+		SendMessage(hlist, LB_SETCURSEL, 0, 0);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("Chrome"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			2, 26, 70, 22,
+			2, 104, 70, 22,
 			hwnd, (HMENU)2,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("IE"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			74, 26, 70, 22,
+			74, 104, 70, 22,
 			hwnd, (HMENU)3,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("Jane"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			146, 26, 70, 22,
+			146, 104, 70, 22,
 			hwnd, (HMENU)4,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
@@ -102,7 +116,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		SecureZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
 		SecureZeroMemory(&argUrl, sizeof(argUrl));
-		GetWindowText(hedit, argUrl, sizeof(argUrl));
+		SendMessage(hlist, LB_GETTEXT,
+			SendMessage(hlist, LB_GETCURSEL, 0, 0),
+			(LPARAM)argUrl
+		);
+		GetWindowText(hlist, argUrl, sizeof(argUrl));
 		lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
 		switch(LOWORD(wp)) {
 		case (HMENU)2:
