@@ -71,7 +71,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
-	TCHAR argUrl[512], argCmd[512];
+	TCHAR argApp[512], argUrl[512], argCmd[512];
+	int i, ItemNum;
 	
 	switch (msg) {
 	case WM_DESTROY:
@@ -82,14 +83,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		argv = CommandLineToArgvW(GetCommandLine(), &argc);
 		hlist = CreateWindow(
 			TEXT("LISTBOX"), argv[argc-1],
-			WS_CHILD | WS_VISIBLE | WS_BORDER,
+			WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_MULTIPLESEL,
 			2, 2, 375, 100,
 			hwnd, (HMENU)1,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		SendMessage(hlist, LB_ADDSTRING, 0, (LPARAM)argv[argc-1]);
 		GlobalFree(argv);
-		SendMessage(hlist, LB_SETCURSEL, 0, 0);
+		SendMessage(hlist, LB_SETSEL, TRUE, 0);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("Chrome"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
@@ -113,32 +114,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		);
 		break;
 	case WM_COMMAND:
+		switch(LOWORD(wp)) {
+		case (HMENU)2:
+			lstrcpyn(argApp, TEXT("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"), sizeof(argApp));
+			break;
+		case (HMENU)3:
+			lstrcpyn(argApp, TEXT("C:\\Program Files\\Internet Explorer\\iexplore.exe"), sizeof(argApp));
+			break;
+		case (HMENU)4:
+			lstrcpyn(argApp, TEXT("C:\\Program Files (x86)\\Jane Style\\Jane2ch.exe"), sizeof(argApp));
+			break;
+		}
 		SecureZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
 		SecureZeroMemory(&argUrl, sizeof(argUrl));
-		SendMessage(hlist, LB_GETTEXT,
-			SendMessage(hlist, LB_GETCURSEL, 0, 0),
-			(LPARAM)argUrl
-		);
-		GetWindowText(hlist, argUrl, sizeof(argUrl));
-		lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
-		switch(LOWORD(wp)) {
-		case (HMENU)2:
-			CreateProcess(TEXT("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"), argCmd,
-				NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
-			);
-			break;
-		case (HMENU)3:
-			CreateProcess(TEXT("C:\\Program Files\\Internet Explorer\\iexplore.exe"), argCmd,
-				NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
-			);
-			break;
-		case (HMENU)4:
-			CreateProcess(TEXT("C:\\Program Files (x86)\\Jane Style\\Jane2ch.exe"), argCmd,
-				NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
-			);
-			break;
+		
+		for (i = 0, ItemNum = SendMessage(hlist, LB_GETCOUNT, 0, 0); i < ItemNum; i++) {
+			if (SendMessage(hlist, LB_GETSEL, i, 0) > 0) {
+				SendMessage(hlist, LB_GETTEXT, i, (LPARAM)argUrl);
+				lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
+				CreateProcess(argApp, argCmd,
+					NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
+				);
+			}
 		}
+
 		break;
 	default:
 		return DefWindowProc(hwnd, msg, wp, lp);
