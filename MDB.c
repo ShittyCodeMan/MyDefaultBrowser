@@ -1,7 +1,6 @@
 #define UNICODE
 
 #include <windows.h>
-#include <Shlobj.h>
 #pragma comment(linker, "/subsystem:windows")
 #pragma comment(linker, "/NODEFAULTLIB")
 #pragma comment(linker, "/INCREMENTAL:NO")
