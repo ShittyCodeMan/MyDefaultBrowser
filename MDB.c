@@ -72,7 +72,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 	TCHAR argApp[512], argUrl[512], argCmd[512];
-	int i, ItemNum;
+	int i, ItemNum, ItemSel[128];
 	
 	switch (msg) {
 	case WM_DESTROY:
@@ -129,14 +129,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		si.cb = sizeof(si);
 		SecureZeroMemory(&argUrl, sizeof(argUrl));
 		
-		for (i = 0, ItemNum = SendMessage(hlist, LB_GETCOUNT, 0, 0); i < ItemNum; i++) {
-			if (SendMessage(hlist, LB_GETSEL, i, 0) > 0) {
-				SendMessage(hlist, LB_GETTEXT, i, (LPARAM)argUrl);
-				lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
-				CreateProcess(argApp, argCmd,
-					NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
-				);
-			}
+			SendMessage(hlist, LB_GETTEXT, ItemSel[i], (LPARAM)argUrl);
+			lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
+			CreateProcess(argApp, argCmd,
+				NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
+			);
 		}
 
 		break;
