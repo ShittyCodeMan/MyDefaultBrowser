@@ -129,6 +129,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		si.cb = sizeof(si);
 		SecureZeroMemory(&argUrl, sizeof(argUrl));
 		
+		for (i = 0, ItemNum = SendMessage(hlist, LB_GETSELITEMS, SendMessage(hlist, LB_GETSELCOUNT, 0, 0), (LPARAM)ItemSel); i < ItemNum; i++) {
 			SendMessage(hlist, LB_GETTEXT, ItemSel[i], (LPARAM)argUrl);
 			lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
 			CreateProcess(argApp, argCmd,
