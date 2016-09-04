@@ -1,9 +1,11 @@
 #define UNICODE
 
 #include <windows.h>
-#pragma comment(linker, "/subsystem:windows")
+
+#pragma comment(linker, "/SUBSYSTEM:WINDOWS")
 #pragma comment(linker, "/NODEFAULTLIB")
 #pragma comment(linker, "/INCREMENTAL:NO")
+#pragma comment(linker, "/MERGE:.RDATA=.TEXT")
 
 #define ClassName TEXT("My Default Browser")
 #define WindowTitle TEXT("Browser Launcher")
@@ -25,12 +27,17 @@ void WinMainCRTStartup()
 
 	hinst = GetModuleHandle(NULL);
 
-	CreateMutex(NULL, FALSE, TEXT("MDB_MUTEX_ANTI-MULEXE"));
-	if (GetLastError() == ERROR_ALREADY_EXISTS) {
-		hlist = FindWindowEx(FindWindow(ClassName, WindowTitle), NULL, TEXT("LISTBOX"), NULL);
+	if (CreateMutex(NULL, FALSE, TEXT("MDB_MUTEX_ANTI-MULEXE")) && (GetLastError() == ERROR_ALREADY_EXISTS)) {
+		hwnd = FindWindow(ClassName, WindowTitle);
+		if (IsIconic(hwnd)) {
+			ShowWindowAsync(hwnd, SW_RESTORE);
+		}
+		SetForegroundWindow(hwnd);
+		hlist = FindWindowEx(hwnd, NULL, TEXT("LISTBOX"), NULL);
 		argv = CommandLineToArgvW(GetCommandLine(), &argc);
 		SendMessage(hlist, LB_ADDSTRING, 0, (LPARAM)argv[argc-1]);
 		GlobalFree(argv);
+		ExitProcess(0);
 		return;
 	}
 	
@@ -63,6 +70,7 @@ void WinMainCRTStartup()
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+	ExitProcess(msg.wParam);
 	return;
 }
 
@@ -71,7 +79,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 	TCHAR argApp[512], argUrl[512], argCmd[512];
-	int i, ItemNum, ItemSel[128];
+	int i, ItemSel[128];
 	
 	switch (msg) {
 	case WM_DESTROY:
@@ -113,6 +121,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		);
 		break;
 	case WM_COMMAND:
+		if (HIWORD(wp) != BN_CLICKED) {
+			return DefWindowProc(hwnd, msg, wp, lp);
+		}
 		switch(LOWORD(wp)) {
 		case (HMENU)2:
 			lstrcpyn(argApp, TEXT("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"), sizeof(argApp));
@@ -123,19 +134,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		case (HMENU)4:
 			lstrcpyn(argApp, TEXT("C:\\Program Files (x86)\\Jane Style\\Jane2ch.exe"), sizeof(argApp));
 			break;
+		default:
+			return DefWindowProc(hwnd, msg, wp, lp);
 		}
 		SecureZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
 		SecureZeroMemory(&argUrl, sizeof(argUrl));
 		
-		for (i = 0, ItemNum = SendMessage(hlist, LB_GETSELITEMS, SendMessage(hlist, LB_GETSELCOUNT, 0, 0), (LPARAM)ItemSel); i < ItemNum; i++) {
+		for (i = SendMessage(hlist, LB_GETSELITEMS, SendMessage(hlist, LB_GETSELCOUNT, 0, 0) - 1, (LPARAM)ItemSel); i >= 0; i--) {
 			SendMessage(hlist, LB_GETTEXT, ItemSel[i], (LPARAM)argUrl);
+			SendMessage(hlist, LB_DELETESTRING, ItemSel[i], 0);
 			lstrcat(lstrcpyn(argCmd, TEXT("-new "), sizeof(argCmd)), argUrl);
 			CreateProcess(argApp, argCmd,
 				NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi
 			);
 		}
-
+		if (SendMessage(hlist, LB_GETCOUNT, 0, 0) == 0) {
+			DestroyWindow(hwnd);
+		}
 		break;
 	default:
 		return DefWindowProc(hwnd, msg, wp, lp);
