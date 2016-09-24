@@ -101,22 +101,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("Chrome"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			2, 104, 70, 22,
+			2 + 72 * 0, 104, 70, 22,
 			hwnd, (HMENU)2,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("IE"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			74, 104, 70, 22,
+			2 + 72 * 1, 104, 70, 22,
 			hwnd, (HMENU)3,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		CreateWindow(
 			TEXT("BUTTON"), TEXT("Jane"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
-			146, 104, 70, 22,
+			2 + 72 * 2, 104, 70, 22,
 			hwnd, (HMENU)4,
+			((LPCREATESTRUCT)(lp))->hInstance, NULL
+		);
+		CreateWindow(
+			TEXT("BUTTON"), TEXT("Jane2"),
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER,
+			2 + 72 * 3, 104, 70, 22,
+			hwnd, (HMENU)5,
 			((LPCREATESTRUCT)(lp))->hInstance, NULL
 		);
 		break;
@@ -133,6 +140,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			break;
 		case (HMENU)4:
 			lstrcpyn(argApp, TEXT("C:\\Program Files (x86)\\Jane Style\\Jane2ch.exe"), sizeof(argApp));
+			break;
+		case (HMENU)5:
+			lstrcpyn(argApp, TEXT("C:\\Jane Style\\Jane2ch.exe"), sizeof(argApp));
 			break;
 		default:
 			return DefWindowProc(hwnd, msg, wp, lp);
